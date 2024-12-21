@@ -1,0 +1,103 @@
+package dev.ywaychitaung.the_memory_game_kotlin.ui.login
+
+import android.content.Intent
+import android.os.Bundle
+import android.text.InputType
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.method.LinkMovementMethod
+import android.text.style.ClickableSpan
+import android.view.View
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import dev.ywaychitaung.the_memory_game_kotlin.R
+import dev.ywaychitaung.the_memory_game_kotlin.data.api.RetrofitClient
+import dev.ywaychitaung.the_memory_game_kotlin.data.model.request.LoginRequest
+import dev.ywaychitaung.the_memory_game_kotlin.databinding.ActivityLoginBinding
+import dev.ywaychitaung.the_memory_game_kotlin.ui.fetch.FetchActivity
+import dev.ywaychitaung.the_memory_game_kotlin.ui.register.RegisterActivity
+import kotlinx.coroutines.launch
+
+class LoginActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityLoginBinding
+    private var isPasswordVisible: Boolean = false
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityLoginBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        // Set clickable text for the register link
+        val fullText = "Don't have a game account? Create one!"
+        val spannableString = SpannableString(fullText)
+
+        val clickableSpan = object : ClickableSpan() {
+            override fun onClick(widget: View) {
+                val intent = Intent(this@LoginActivity, RegisterActivity::class.java)
+                startActivity(intent)
+            }
+        }
+
+        val startIndex = fullText.indexOf("Create one!")
+        val endIndex = startIndex + "Create one!".length
+        spannableString.setSpan(clickableSpan, startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+
+        binding.registerLink.text = spannableString
+        binding.registerLink.movementMethod = LinkMovementMethod.getInstance()
+
+        // Handle password visibility toggle
+        binding.passwordToggle.setOnClickListener {
+            isPasswordVisible = !isPasswordVisible
+            if (isPasswordVisible) {
+                // Show password
+                binding.passwordEditText.inputType =
+                    InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+                binding.passwordToggle.setImageResource(R.drawable.ic_visibility) // Use visible icon
+            } else {
+                // Hide password
+                binding.passwordEditText.inputType =
+                    InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+                binding.passwordToggle.setImageResource(R.drawable.ic_visibility_off) // Use invisible icon
+            }
+            binding.passwordEditText.setSelection(binding.passwordEditText.text.length) // Maintain cursor position
+        }
+
+        // Handle login button click
+        binding.loginButton.setOnClickListener {
+            val username = binding.usernameEditText.text.toString()
+            val password = binding.passwordEditText.text.toString()
+
+            if (username.isBlank() || password.isBlank()) {
+                Toast.makeText(this, "Please fill all fields", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            lifecycleScope.launch {
+                try {
+                    binding.progressBar.visibility = View.VISIBLE
+                    binding.loginButton.isEnabled = false
+
+                    val response = RetrofitClient.authApi.login(LoginRequest(username, password))
+
+                    // Login successful
+                    Toast.makeText(this@LoginActivity, "Login successful!", Toast.LENGTH_SHORT).show()
+
+                     // Navigate to the next screen if needed
+                     startActivity(Intent(this@LoginActivity, FetchActivity::class.java))
+                     finish()
+                } catch (e: Exception) {
+                    // Handle login failure
+                    Toast.makeText(
+                        this@LoginActivity,
+                        "Invalid Credentials! Please try again.",
+                        Toast.LENGTH_LONG
+                    ).show()
+                } finally {
+                    binding.progressBar.visibility = View.GONE
+                    binding.loginButton.isEnabled = true
+                }
+            }
+        }
+    }
+}
