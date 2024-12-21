@@ -3,9 +3,13 @@ package dev.ywaychitaung.the_memory_game_kotlin.ui.play
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import dev.ywaychitaung.the_memory_game_kotlin.R
 import dev.ywaychitaung.the_memory_game_kotlin.databinding.ActivityPlayBinding
 
 class PlayActivity : AppCompatActivity() {
@@ -16,10 +20,58 @@ class PlayActivity : AppCompatActivity() {
     private var isAdFree = false // Assume you have logic to check for paid users
     private val adInterval = 30_000L // 30 seconds in milliseconds
 
+    private val sharedPreferences by lazy {
+        val masterKey = MasterKey.Builder(this)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+
+        EncryptedSharedPreferences.create(
+            this,
+            "secure_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityPlayBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Retrieve username from EncryptedSharedPreferences
+        val sharedPreferences = EncryptedSharedPreferences.create(
+            this,
+            "secure_prefs",
+            MasterKey.Builder(this)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build(),
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+
+        val username = sharedPreferences.getString("username", "Guest")
+        val isPaidUser = sharedPreferences.getBoolean("isPaidUser", false)
+
+        // Display username
+        binding.usernameTextView.text = "Username: $username"
+
+        // Set the icon and text based on the user's status
+        if (isPaidUser) {
+            binding.userStatusIcon.setImageResource(R.drawable.ic_premium)
+            binding.userStatusTextView.text = "Premium User"
+        } else {
+            binding.userStatusIcon.setImageResource(R.drawable.ic_free)
+            binding.userStatusTextView.text = "Free User"
+        }
+
+        // Show "Purchase Premium" button if user is not paid
+        if (!isPaidUser) {
+            binding.purchasePremiumButton.visibility = View.VISIBLE
+//            binding.purchasePremiumButton.setOnClickListener {
+//                purchasePremium()
+//            }
+        }
 
         val selectedImages = intent.getStringArrayListExtra("selectedImages") ?: arrayListOf()
 
