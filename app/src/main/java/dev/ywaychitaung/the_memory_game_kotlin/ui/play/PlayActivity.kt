@@ -19,6 +19,7 @@ class PlayActivity : AppCompatActivity() {
     private var startTime = 0L
     private var isAdFree = false // Assume you have logic to check for paid users
     private val adInterval = 30_000L // 30 seconds in milliseconds
+    private var currentAdIndex = 0
 
     private val sharedPreferences by lazy {
         val masterKey = MasterKey.Builder(this)
@@ -33,6 +34,15 @@ class PlayActivity : AppCompatActivity() {
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
     }
+
+    // Define your custom ads
+    private val ads = listOf(
+        "Ad 1: Amazing deals on electronics!",
+        "Ad 2: Get 50% off on your next purchase.",
+        "Ad 3: Subscribe to our newsletter and win a prize.",
+        "Ad 4: Check out the latest trends in fashion.",
+        "Ad 5: Don't miss our weekend sale!"
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,6 +87,7 @@ class PlayActivity : AppCompatActivity() {
 
         setupGame(selectedImages)
         startTimer()
+        setupCustomAds()
         if (!isAdFree) startAdCycle()
     }
 
@@ -114,6 +125,26 @@ class PlayActivity : AppCompatActivity() {
         })
     }
 
+    private fun setupCustomAds() {
+        if (isFreeUser()) {
+            displayAd()
+            startAdCycle()
+        } else {
+            binding.adTextView.visibility = View.GONE // Hide ads for premium users
+        }
+    }
+
+    private fun isFreeUser(): Boolean {
+        val sharedPreferences = getSharedPreferences("secure_prefs", MODE_PRIVATE)
+        return !sharedPreferences.getBoolean("isPaidUser", false)
+    }
+
+    private fun displayAd() {
+        // Rotate ads
+        binding.adTextView.text = ads[currentAdIndex]
+        currentAdIndex = (currentAdIndex + 1) % ads.size
+    }
+
     private fun startAdCycle() {
         handler.postDelayed(object : Runnable {
             override fun run() {
@@ -121,11 +152,6 @@ class PlayActivity : AppCompatActivity() {
                 handler.postDelayed(this, adInterval)
             }
         }, adInterval)
-    }
-
-    private fun displayAd() {
-        // Logic to fetch and display a new ad
-        binding.adTextView.text = "This is an ad. [Ad changes every 30 seconds]"
     }
 
     override fun onDestroy() {
