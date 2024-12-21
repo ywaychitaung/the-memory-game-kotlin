@@ -9,6 +9,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import dev.ywaychitaung.the_memory_game_kotlin.databinding.ActivityFetchBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -27,10 +29,27 @@ class FetchActivity : AppCompatActivity() {
     private lateinit var webService: WebService
     private var currentJob: Job? = null
 
+    private val sharedPreferences by lazy {
+        val masterKey = MasterKey.Builder(this)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+
+        EncryptedSharedPreferences.create(
+            this,
+            "secure_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityFetchBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        val username = sharedPreferences.getString("username", "Guest")
+        binding.welcomeTextView.text = "Welcome, $username!"
 
         setupRetrofit()
         setupRecyclerView()
