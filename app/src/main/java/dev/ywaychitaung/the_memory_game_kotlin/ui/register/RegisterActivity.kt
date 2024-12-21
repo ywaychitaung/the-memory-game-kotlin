@@ -5,9 +5,9 @@ import android.text.InputType
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import dev.ywaychitaung.the_memory_game_kotlin.databinding.ActivityRegisterBinding
-import dev.ywaychitaung.the_memory_game_kotlin.ui.login.LoginActivity
 import android.content.Intent
 import dev.ywaychitaung.the_memory_game_kotlin.R
+import dev.ywaychitaung.the_memory_game_kotlin.ui.login.LoginActivity
 
 class RegisterActivity : AppCompatActivity() {
     private lateinit var binding: ActivityRegisterBinding

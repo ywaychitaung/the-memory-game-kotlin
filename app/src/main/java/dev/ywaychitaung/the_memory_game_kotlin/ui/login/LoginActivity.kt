@@ -11,6 +11,8 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import dev.ywaychitaung.the_memory_game_kotlin.R
 import dev.ywaychitaung.the_memory_game_kotlin.data.api.RetrofitClient
 import dev.ywaychitaung.the_memory_game_kotlin.data.model.request.LoginRequest
@@ -22,6 +24,19 @@ import kotlinx.coroutines.launch
 class LoginActivity : AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private var isPasswordVisible: Boolean = false
+    private val sharedPreferences by lazy {
+        val masterKey = MasterKey.Builder(this)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+
+        EncryptedSharedPreferences.create(
+            this,
+            "secure_prefs",
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,12 +95,19 @@ class LoginActivity : AppCompatActivity() {
 
                     val response = RetrofitClient.authApi.login(LoginRequest(username, password))
 
+                    // Save the login response securely
+                    saveToSecureStorage(
+                        userId = response.userId,
+                        username = response.username,
+                        isPaidUser = response.isPaidUser
+                    )
+
                     // Login successful
                     Toast.makeText(this@LoginActivity, "Login successful!", Toast.LENGTH_SHORT).show()
 
-                     // Navigate to the next screen if needed
-                     startActivity(Intent(this@LoginActivity, FetchActivity::class.java))
-                     finish()
+                    // Navigate to the next screen
+                    startActivity(Intent(this@LoginActivity, FetchActivity::class.java))
+                    finish()
                 } catch (e: Exception) {
                     // Handle login failure
                     Toast.makeText(
@@ -98,6 +120,15 @@ class LoginActivity : AppCompatActivity() {
                     binding.loginButton.isEnabled = true
                 }
             }
+        }
+    }
+
+    private fun saveToSecureStorage(userId: String, username: String, isPaidUser: Boolean) {
+        with(sharedPreferences.edit()) {
+            putString("userId", userId)
+            putString("username", username)
+            putBoolean("isPaidUser", isPaidUser)
+            apply()
         }
     }
 }

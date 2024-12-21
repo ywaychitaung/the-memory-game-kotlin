@@ -52,6 +52,9 @@ dependencies {
     // Material Design Components
     implementation("com.google.android.material:material:1.9.0")
 
+    // Secure Shared Preferences
+    implementation("androidx.security:security-crypto:1.1.0-alpha04")
+
     // JSoup for HTML parsing
     implementation("org.jsoup:jsoup:1.15.4")
 

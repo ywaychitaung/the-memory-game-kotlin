@@ -36,7 +36,7 @@ class PlayActivity : AppCompatActivity() {
         binding.recyclerView.adapter = PlayAdapter(gameImages) { matchFound ->
             if (matchFound) {
                 matches++
-                binding.matchesTextView.text = "Matches: $matches"
+                binding.matchesTextView.text = "Matches: $matches of 6"
                 if (matches == 6) {
                     Toast.makeText(this, "You won!", Toast.LENGTH_SHORT).show()
                 }
@@ -48,8 +48,15 @@ class PlayActivity : AppCompatActivity() {
         startTime = System.currentTimeMillis()
         handler.post(object : Runnable {
             override fun run() {
-                val elapsedTime = (System.currentTimeMillis() - startTime) / 1000
-                binding.timerTextView.text = "Time: $elapsedTime seconds"
+                val elapsedTime = System.currentTimeMillis() - startTime
+                val seconds = (elapsedTime / 1000) % 60
+                val minutes = (elapsedTime / (1000 * 60)) % 60
+                val hours = (elapsedTime / (1000 * 60 * 60)) % 24
+
+                // Format the time as hh:mm:ss
+                val timeString = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+                binding.timerTextView.text = "Time: $timeString"
+
                 handler.postDelayed(this, 1000)
             }
         })
