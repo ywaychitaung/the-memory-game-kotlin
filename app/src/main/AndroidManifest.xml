@@ -29,5 +29,6 @@
         <activity android:name=".ui.register.RegisterActivity" />
         <activity android:name=".ui.fetch.FetchActivity" />
         <activity android:name=".ui.play.PlayActivity" />
+        <activity android:name=".ui.leaderboard.LeaderboardActivity" />
     </application>
 </manifest>

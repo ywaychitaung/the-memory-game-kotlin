@@ -1,26 +1,29 @@
 package dev.ywaychitaung.the_memory_game_kotlin.ui.play
 
+import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import dev.ywaychitaung.the_memory_game_kotlin.R
+import dev.ywaychitaung.the_memory_game_kotlin.data.api.RetrofitClient
+import dev.ywaychitaung.the_memory_game_kotlin.data.model.request.ScoreRequest
 import dev.ywaychitaung.the_memory_game_kotlin.databinding.ActivityPlayBinding
+import dev.ywaychitaung.the_memory_game_kotlin.ui.leaderboard.LeaderboardActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class PlayActivity : AppCompatActivity() {
     private lateinit var binding: ActivityPlayBinding
     private val handler = Handler(Looper.getMainLooper())
     private var matches = 0
     private var startTime = 0L
-    private var isAdFree = false // Assume you have logic to check for paid users
-    private val adInterval = 30_000L // 30 seconds in milliseconds
-    private var currentAdIndex = 0
-
+    private var totalMoves = 0
     private val sharedPreferences by lazy {
         val masterKey = MasterKey.Builder(this)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
@@ -35,73 +38,28 @@ class PlayActivity : AppCompatActivity() {
         )
     }
 
-    // Define your custom ads
-    private val ads = listOf(
-        "Ad 1: Amazing deals on electronics!",
-        "Ad 2: Get 50% off on your next purchase.",
-        "Ad 3: Subscribe to our newsletter and win a prize.",
-        "Ad 4: Check out the latest trends in fashion.",
-        "Ad 5: Don't miss our weekend sale!"
-    )
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityPlayBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Retrieve username from EncryptedSharedPreferences
-        val sharedPreferences = EncryptedSharedPreferences.create(
-            this,
-            "secure_prefs",
-            MasterKey.Builder(this)
-                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-                .build(),
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-
-        val username = sharedPreferences.getString("username", "Guest")
-        val isPaidUser = sharedPreferences.getBoolean("isPaidUser", false)
-
-        // Display username
-        binding.usernameTextView.text = "Username: $username"
-
-        // Set the icon and text based on the user's status
-        if (isPaidUser) {
-            binding.userStatusIcon.setImageResource(R.drawable.ic_premium)
-            binding.userStatusTextView.text = "Premium User"
-        } else {
-            binding.userStatusIcon.setImageResource(R.drawable.ic_free)
-            binding.userStatusTextView.text = "Free User"
-        }
-
-        // Show "Purchase Premium" button if user is not paid
-        if (!isPaidUser) {
-            binding.purchasePremiumButton.visibility = View.VISIBLE
-//            binding.purchasePremiumButton.setOnClickListener {
-//                purchasePremium()
-//            }
-        }
-
         val selectedImages = intent.getStringArrayListExtra("selectedImages") ?: arrayListOf()
 
         setupGame(selectedImages)
         startTimer()
-        setupCustomAds()
-        if (!isAdFree) startAdCycle()
     }
 
     private fun setupGame(images: List<String>) {
-        // Create a shuffled list of 12 placeholders (6 pairs)
         val gameImages = (images + images).shuffled()
 
         binding.recyclerView.layoutManager = GridLayoutManager(this, 3)
         binding.recyclerView.adapter = PlayAdapter(gameImages) { matchFound ->
+            totalMoves++
             if (matchFound) {
                 matches++
                 binding.matchesTextView.text = "Matches: $matches of 6"
                 if (matches == 6) {
-                    Toast.makeText(this, "You won!", Toast.LENGTH_SHORT).show()
+                    endGame()
                 }
             }
         }
@@ -111,47 +69,45 @@ class PlayActivity : AppCompatActivity() {
         startTime = System.currentTimeMillis()
         handler.post(object : Runnable {
             override fun run() {
-                val elapsedTime = System.currentTimeMillis() - startTime
-                val seconds = (elapsedTime / 1000) % 60
-                val minutes = (elapsedTime / (1000 * 60)) % 60
-                val hours = (elapsedTime / (1000 * 60 * 60)) % 24
-
-                // Format the time as hh:mm:ss
-                val timeString = String.format("%02d:%02d:%02d", hours, minutes, seconds)
-                binding.timerTextView.text = "Time: $timeString"
+                val elapsedTime = (System.currentTimeMillis() - startTime) / 1000
+                val minutes = elapsedTime / 60
+                val seconds = elapsedTime % 60
+                binding.timerTextView.text = "Time: %02d:%02d".format(minutes, seconds)
 
                 handler.postDelayed(this, 1000)
             }
         })
     }
 
-    private fun setupCustomAds() {
-        if (isFreeUser()) {
-            displayAd()
-            startAdCycle()
-        } else {
-            binding.adTextView.visibility = View.GONE // Hide ads for premium users
+    private fun endGame() {
+        handler.removeCallbacksAndMessages(null)
+
+        val elapsedTime = (System.currentTimeMillis() - startTime) / 1000
+        val userId = sharedPreferences.getString("userId", null)
+
+        if (userId != null) {
+            CoroutineScope(Dispatchers.IO).launch {
+                val scoreRequest = ScoreRequest(userId, totalMoves, elapsedTime.toInt())
+                val response = try {
+                    RetrofitClient.authApi.createScore(scoreRequest)
+                } catch (e: Exception) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@PlayActivity, "Failed to save score.", Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+
+                withContext(Dispatchers.Main) {
+                    sharedPreferences.edit().putInt("lastGameTime", elapsedTime.toInt()).apply()
+                    navigateToLeaderboard()
+                }
+            }
         }
     }
 
-    private fun isFreeUser(): Boolean {
-        val sharedPreferences = getSharedPreferences("secure_prefs", MODE_PRIVATE)
-        return !sharedPreferences.getBoolean("isPaidUser", false)
-    }
-
-    private fun displayAd() {
-        // Rotate ads
-        binding.adTextView.text = ads[currentAdIndex]
-        currentAdIndex = (currentAdIndex + 1) % ads.size
-    }
-
-    private fun startAdCycle() {
-        handler.postDelayed(object : Runnable {
-            override fun run() {
-                displayAd()
-                handler.postDelayed(this, adInterval)
-            }
-        }, adInterval)
+    private fun navigateToLeaderboard() {
+        startActivity(Intent(this, LeaderboardActivity::class.java))
+        finish()
     }
 
     override fun onDestroy() {
