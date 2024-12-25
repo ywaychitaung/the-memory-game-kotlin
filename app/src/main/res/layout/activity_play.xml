@@ -41,7 +41,7 @@
                 android:id="@+id/matchesTextView"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Matches: 0"
+                android:text="Matches: 0 of 6"
                 android:layout_weight="1"
                 android:textSize="18sp"
                 android:textColor="@android:color/black" />
