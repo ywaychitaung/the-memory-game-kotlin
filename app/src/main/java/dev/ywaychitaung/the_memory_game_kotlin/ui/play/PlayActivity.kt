@@ -15,6 +15,7 @@ import dev.ywaychitaung.the_memory_game_kotlin.data.api.RetrofitClient
 import dev.ywaychitaung.the_memory_game_kotlin.data.model.request.ScoreRequest
 import dev.ywaychitaung.the_memory_game_kotlin.databinding.ActivityPlayBinding
 import dev.ywaychitaung.the_memory_game_kotlin.ui.leaderboard.LeaderboardActivity
+import dev.ywaychitaung.the_memory_game_kotlin.ui.login.LoginActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -71,6 +72,14 @@ class PlayActivity : AppCompatActivity() {
         binding.purchasePremiumButton.visibility = if (isPaidUser) View.GONE else View.VISIBLE
         binding.adTextView.text = adStrings[0]
 
+        binding.logoutButton.setOnClickListener {
+            showLogoutConfirmationDialog()
+        }
+
+        binding.purchasePremiumButton.setOnClickListener {
+            handlePremiumPurchase()
+        }
+
         setupGame(selectedImages)
         startTimer()
         startAdRotation()
@@ -124,6 +133,32 @@ class PlayActivity : AppCompatActivity() {
         })
     }
 
+    private fun showGameCompletionDialog() {
+        val username = sharedPreferences.getString("username", "Guest")
+        val elapsedTime = (System.currentTimeMillis() - startTime) / 1000
+        val hours = elapsedTime / 3600
+        val minutes = (elapsedTime % 3600) / 60
+        val seconds = elapsedTime % 60
+
+        val timeFormatted = String.format("%02d:%02d:%02d", hours, minutes, seconds)
+        val message = if (username != "Guest") {
+            "Congratulations $username!\nYour Time: $timeFormatted"
+        } else {
+            "Congratulations Guest!\nYour Time: $timeFormatted"
+        }
+
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Game Complete!")
+            .setMessage(message)
+            .setPositiveButton("Show Leaderboard") { _, _ ->
+                navigateToLeaderboard()
+            }
+            .setCancelable(false)
+            .create()
+
+        dialog.show()
+    }
+
     private fun endGame() {
         handler.removeCallbacksAndMessages(null)
         adHandler.removeCallbacksAndMessages(null)
@@ -131,21 +166,83 @@ class PlayActivity : AppCompatActivity() {
         val elapsedTime = (System.currentTimeMillis() - startTime) / 1000
         val userId = sharedPreferences.getString("userId", null)
 
-        if (userId != null) {
+        if (userId != null && sharedPreferences.getString("username", "Guest") != "Guest") {
             CoroutineScope(Dispatchers.IO).launch {
                 val scoreRequest = ScoreRequest(userId, totalMoves, elapsedTime.toInt())
-                val response = try {
+                try {
                     RetrofitClient.authApi.createScore(scoreRequest)
+                    withContext(Dispatchers.Main) {
+                        sharedPreferences.edit().putInt("lastGameTime", elapsedTime.toInt()).apply()
+                        showGameCompletionDialog()
+                    }
                 } catch (e: Exception) {
                     withContext(Dispatchers.Main) {
                         Toast.makeText(this@PlayActivity, "Failed to save score.", Toast.LENGTH_SHORT).show()
+                        showGameCompletionDialog()
                     }
-                    return@launch
                 }
+            }
+        } else {
+            showGameCompletionDialog()
+        }
+    }
 
+    private fun showLogoutConfirmationDialog() {
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Logout")
+            .setMessage("Are you sure you want to logout?")
+            .setPositiveButton("Yes") { _, _ ->
+                handleLogout()
+            }
+            .setNegativeButton("No", null)
+            .create()
+
+        dialog.show()
+    }
+
+    private fun handleLogout() {
+        sharedPreferences.edit().clear().apply()
+        val intent = Intent(this, LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
+    }
+
+    private fun showPurchaseSuccessDialog() {
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Premium Purchase")
+            .setMessage("Purchase successful! You are now a premium user.")
+            .setPositiveButton("OK") { dialog, _ ->
+                dialog.dismiss()
+                binding.adTextView.visibility = View.GONE
+                binding.purchasePremiumButton.visibility = View.GONE
+                binding.userStatusTextView.text = "Premium User"
+                binding.userStatusIcon.setImageResource(R.drawable.ic_premium)
+                adHandler.removeCallbacksAndMessages(null)
+            }
+            .setCancelable(false)
+            .create()
+
+        dialog.show()
+    }
+
+    private fun handlePremiumPurchase() {
+        val userId = sharedPreferences.getString("userId", null)
+        if (userId == null) {
+            Toast.makeText(this, "User ID not found", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                RetrofitClient.authApi.purchasePremium(userId)
                 withContext(Dispatchers.Main) {
-                    sharedPreferences.edit().putInt("lastGameTime", elapsedTime.toInt()).apply()
-                    navigateToLeaderboard()
+                    sharedPreferences.edit().putBoolean("isPaidUser", true).apply()
+                    showPurchaseSuccessDialog()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@PlayActivity, "Purchase failed. Please try again.", Toast.LENGTH_SHORT).show()
                 }
             }
         }

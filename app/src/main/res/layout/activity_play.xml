@@ -80,7 +80,7 @@
             android:orientation="horizontal"
             android:gravity="center"
             android:layout_marginTop="8dp"
-            android:layout_marginBottom="32dp">
+            android:layout_marginBottom="16dp">
 
             <ImageView
                 android:id="@+id/userStatusIcon"
@@ -100,12 +100,26 @@
         </LinearLayout>
 
         <Button
+            android:id="@+id/logoutButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Logout"
+            android:layout_gravity="center"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="16dp"
+            android:backgroundTint="#FF0000"
+            android:textColor="#FFFFFF" />
+
+        <Button
             android:id="@+id/purchasePremiumButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Purchase Premium"
             android:layout_gravity="center"
-            android:visibility="gone"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/userStatusTextView"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             android:layout_marginBottom="32dp" />
 
         <!-- Advertisement section -->

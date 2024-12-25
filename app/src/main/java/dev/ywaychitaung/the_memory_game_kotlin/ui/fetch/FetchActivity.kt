@@ -99,36 +99,39 @@ class FetchActivity : AppCompatActivity() {
     }
 
     private fun fetchImages(url: String) {
-        currentJob?.cancel() // Cancel the current job if a new URL is entered
+        currentJob?.cancel()
         currentJob = lifecycleScope.launch(Dispatchers.IO) {
             try {
                 updateUIForLoading()
 
-                // Fetch webpage content
                 val response = webService.fetchPage(url).execute()
                 if (!response.isSuccessful || response.body().isNullOrEmpty()) {
                     throw Exception("Failed to fetch webpage: ${response.message()}")
                 }
 
-                // Parse the webpage to extract image URLs
                 val document = Jsoup.parse(response.body())
                 val imageElements = document.select("img[src]")
                 val imageUrls = imageElements.map { it.absUrl("src") }
-                    .filter { it.isNotBlank() } // Filter out empty URLs
-                    .distinct() // Ensure URLs are unique
-                    .take(20) // Take only the first 20 valid URLs
+                    .filter { it.isNotBlank() }
+                    .distinct()
+                    .take(20)
 
                 if (imageUrls.isEmpty()) {
                     throw Exception("No images found at the specified URL.")
                 }
 
-                // Download and display images
+                // Download images with artificial delay
                 imageUrls.forEachIndexed { index, imageUrl ->
-                    if (!isActive) return@forEachIndexed // Exit if the coroutine is cancelled
+                    if (!isActive) return@forEachIndexed
 
                     withContext(Dispatchers.Main) {
                         (binding.imagesRecyclerView.adapter as ImagesAdapter).addImage(imageUrl)
                         updateProgress(index + 1, imageUrls.size)
+                    }
+
+                    // Add artificial delay between image downloads
+                    withContext(Dispatchers.IO) {
+                        kotlinx.coroutines.delay(500) // 500ms delay between each image
                     }
                 }
 
