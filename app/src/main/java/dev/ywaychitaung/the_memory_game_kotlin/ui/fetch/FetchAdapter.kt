@@ -7,9 +7,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.squareup.picasso.Picasso
 import dev.ywaychitaung.the_memory_game_kotlin.R
 
-class ImagesAdapter(
+class FetchAdapter(
     private val onSelectionChanged: (List<String>) -> Unit
-) : RecyclerView.Adapter<ImagesAdapter.ImageViewHolder>() {
+) : RecyclerView.Adapter<FetchAdapter.ImageViewHolder>() {
 
     private val imageUrls = mutableListOf<String>()
     private val selectedImages = mutableSetOf<String>()

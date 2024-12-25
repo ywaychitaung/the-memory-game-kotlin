@@ -1,15 +1,18 @@
-package dev.ywaychitaung.the_memory_game_kotlin.data.api
+package dev.ywaychitaung.the_memory_game_kotlin.networking
 
-import dev.ywaychitaung.the_memory_game_kotlin.data.model.request.LoginRequest
-import dev.ywaychitaung.the_memory_game_kotlin.data.model.response.LoginResponse
+import dev.ywaychitaung.the_memory_game_kotlin.data.model.request.AuthRequest
+import dev.ywaychitaung.the_memory_game_kotlin.data.model.response.AuthResponse
 import dev.ywaychitaung.the_memory_game_kotlin.data.model.request.ScoreRequest
 import dev.ywaychitaung.the_memory_game_kotlin.data.model.response.ScoreResponse
 import retrofit2.Response
 import retrofit2.http.*
 
-interface AuthApi {
+interface Api {
     @POST("api/auth/login")
-    suspend fun login(@Body request: LoginRequest): LoginResponse
+    suspend fun login(@Body request: AuthRequest): AuthResponse
+
+    @POST("api/auth/register")
+    suspend fun register(@Body request: AuthRequest): AuthResponse
 
     @POST("api/users/{userId}/premium")
     suspend fun purchasePremium(@Path("userId") userId: String): Response<Unit>

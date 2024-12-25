@@ -14,8 +14,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dev.ywaychitaung.the_memory_game_kotlin.R
-import dev.ywaychitaung.the_memory_game_kotlin.data.api.RetrofitClient
-import dev.ywaychitaung.the_memory_game_kotlin.data.model.request.LoginRequest
+import dev.ywaychitaung.the_memory_game_kotlin.networking.RetrofitClient
+import dev.ywaychitaung.the_memory_game_kotlin.data.model.request.AuthRequest
 import dev.ywaychitaung.the_memory_game_kotlin.databinding.ActivityLoginBinding
 import dev.ywaychitaung.the_memory_game_kotlin.ui.fetch.FetchActivity
 import dev.ywaychitaung.the_memory_game_kotlin.ui.register.RegisterActivity
@@ -59,6 +59,19 @@ class LoginActivity : AppCompatActivity() {
         val endIndex = startIndex + "Create one!".length
         spannableString.setSpan(clickableSpan, startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
 
+        binding.guestButton.setOnClickListener {
+            // Save guest status
+            saveToSecureStorage(
+                userId = "guest",
+                username = "Guest",
+                isPaidUser = false
+            )
+
+            // Navigate to fetch activity
+            startActivity(Intent(this, FetchActivity::class.java))
+            finish()
+        }
+
         binding.registerLink.text = spannableString
         binding.registerLink.movementMethod = LinkMovementMethod.getInstance()
 
@@ -94,7 +107,7 @@ class LoginActivity : AppCompatActivity() {
                     binding.progressBar.visibility = View.VISIBLE
                     binding.loginButton.isEnabled = false
 
-                    val response = RetrofitClient.authApi.login(LoginRequest(username, password))
+                    val response = RetrofitClient.api.login(AuthRequest(username, password))
 
                     // Save the login response securely
                     saveToSecureStorage(

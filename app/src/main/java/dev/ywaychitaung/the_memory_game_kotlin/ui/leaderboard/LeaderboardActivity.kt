@@ -6,7 +6,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import dev.ywaychitaung.the_memory_game_kotlin.data.api.RetrofitClient
+import dev.ywaychitaung.the_memory_game_kotlin.networking.RetrofitClient
 import dev.ywaychitaung.the_memory_game_kotlin.data.model.response.ScoreResponse
 import dev.ywaychitaung.the_memory_game_kotlin.databinding.ActivityLeaderboardBinding
 import dev.ywaychitaung.the_memory_game_kotlin.ui.fetch.FetchActivity
@@ -50,7 +50,7 @@ class LeaderboardActivity : AppCompatActivity() {
         showLoading(true)
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val response = RetrofitClient.authApi.getScores()
+                val response = RetrofitClient.api.getScores()
                 withContext(Dispatchers.Main) {
                     showLoading(false)
                     displayScores(response)

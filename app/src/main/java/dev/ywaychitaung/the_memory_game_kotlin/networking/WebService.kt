@@ -1,4 +1,4 @@
-package dev.ywaychitaung.the_memory_game_kotlin.data.api
+package dev.ywaychitaung.the_memory_game_kotlin.networking
 
 import retrofit2.Call
 import retrofit2.http.GET

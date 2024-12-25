@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import dev.ywaychitaung.the_memory_game_kotlin.R
-import dev.ywaychitaung.the_memory_game_kotlin.data.api.RetrofitClient
+import dev.ywaychitaung.the_memory_game_kotlin.networking.RetrofitClient
 import dev.ywaychitaung.the_memory_game_kotlin.data.model.request.ScoreRequest
 import dev.ywaychitaung.the_memory_game_kotlin.databinding.ActivityPlayBinding
 import dev.ywaychitaung.the_memory_game_kotlin.ui.leaderboard.LeaderboardActivity
@@ -170,7 +170,7 @@ class PlayActivity : AppCompatActivity() {
             CoroutineScope(Dispatchers.IO).launch {
                 val scoreRequest = ScoreRequest(userId, totalMoves, elapsedTime.toInt())
                 try {
-                    RetrofitClient.authApi.createScore(scoreRequest)
+                    RetrofitClient.api.createScore(scoreRequest)
                     withContext(Dispatchers.Main) {
                         sharedPreferences.edit().putInt("lastGameTime", elapsedTime.toInt()).apply()
                         showGameCompletionDialog()
@@ -235,7 +235,7 @@ class PlayActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                RetrofitClient.authApi.purchasePremium(userId)
+                RetrofitClient.api.purchasePremium(userId)
                 withContext(Dispatchers.Main) {
                     sharedPreferences.edit().putBoolean("isPaidUser", true).apply()
                     showPurchaseSuccessDialog()

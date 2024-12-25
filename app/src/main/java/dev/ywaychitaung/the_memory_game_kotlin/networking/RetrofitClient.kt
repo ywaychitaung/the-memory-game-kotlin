@@ -1,4 +1,4 @@
-package dev.ywaychitaung.the_memory_game_kotlin.data.api
+package dev.ywaychitaung.the_memory_game_kotlin.networking
 
 import dev.ywaychitaung.the_memory_game_kotlin.utility.Constants
 import retrofit2.Retrofit
@@ -12,7 +12,7 @@ object RetrofitClient {
             .build()
     }
 
-    val authApi: AuthApi by lazy {
-        retrofit.create(AuthApi::class.java)
+    val api: Api by lazy {
+        retrofit.create(Api::class.java)
     }
 }

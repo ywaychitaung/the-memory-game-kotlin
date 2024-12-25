@@ -1,16 +1,20 @@
 package dev.ywaychitaung.the_memory_game_kotlin.ui.fetch
 
-import ImagesAdapter
+import FetchAdapter
 import android.content.Intent
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.text.TextUtils
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import dev.ywaychitaung.the_memory_game_kotlin.R
 import dev.ywaychitaung.the_memory_game_kotlin.databinding.ActivityFetchBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -19,7 +23,8 @@ import kotlinx.coroutines.launch
 import org.jsoup.Jsoup
 import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
-import dev.ywaychitaung.the_memory_game_kotlin.data.api.WebService
+import dev.ywaychitaung.the_memory_game_kotlin.networking.WebService
+import dev.ywaychitaung.the_memory_game_kotlin.ui.login.LoginActivity
 import dev.ywaychitaung.the_memory_game_kotlin.ui.play.PlayActivity
 import kotlinx.coroutines.withContext
 
@@ -51,9 +56,6 @@ class FetchActivity : AppCompatActivity() {
         val username = sharedPreferences.getString("username", "Guest")
         binding.welcomeTextView.text = "Welcome, $username!"
 
-        setupRetrofit()
-        setupRecyclerView()
-
         binding.fetchButton.setOnClickListener {
             val enteredUrl = binding.urlEditText.text.toString().trim()
             if (TextUtils.isEmpty(enteredUrl)) {
@@ -72,12 +74,16 @@ class FetchActivity : AppCompatActivity() {
         }
 
         binding.playButton.setOnClickListener {
-            val selectedImages = (binding.imagesRecyclerView.adapter as ImagesAdapter).getSelectedImages()
+            val selectedImages = (binding.imagesRecyclerView.adapter as FetchAdapter).getSelectedImages()
             val intent = Intent(this, PlayActivity::class.java).apply {
                 putStringArrayListExtra("selectedImages", ArrayList(selectedImages))
             }
             startActivity(intent)
         }
+
+        setupRetrofit()
+        setupRecyclerView()
+        setupAuthButton()
     }
 
     private fun setupRetrofit() {
@@ -89,7 +95,7 @@ class FetchActivity : AppCompatActivity() {
     }
 
     private fun setupRecyclerView() {
-        val adapter = ImagesAdapter { selectedImages ->
+        val adapter = FetchAdapter { selectedImages ->
             // Enable the "Play" button when 6 images are selected
             binding.playButton.isEnabled = selectedImages.size == 6
             binding.selectionTextView.text = "Image ${selectedImages.size} of 6 selected"
@@ -125,7 +131,7 @@ class FetchActivity : AppCompatActivity() {
                     if (!isActive) return@forEachIndexed
 
                     withContext(Dispatchers.Main) {
-                        (binding.imagesRecyclerView.adapter as ImagesAdapter).addImage(imageUrl)
+                        (binding.imagesRecyclerView.adapter as FetchAdapter).addImage(imageUrl)
                         updateProgress(index + 1, imageUrls.size)
                     }
 
@@ -153,7 +159,7 @@ class FetchActivity : AppCompatActivity() {
             binding.playButton.visibility = View.GONE
 
             // Clear existing images and set the new adapter with the selection listener
-            binding.imagesRecyclerView.adapter = ImagesAdapter { selectedImages ->
+            binding.imagesRecyclerView.adapter = FetchAdapter { selectedImages ->
                 // Enable or disable the Play button based on the selected images count
                 binding.playButton.isEnabled = selectedImages.size == 6
                 binding.selectionTextView.text = "Image ${selectedImages.size} of 6 selected"
@@ -183,5 +189,42 @@ class FetchActivity : AppCompatActivity() {
             Toast.makeText(this@FetchActivity, message, Toast.LENGTH_SHORT).show()
             finishLoading()
         }
+    }
+
+    private fun setupAuthButton() {
+        val username = sharedPreferences.getString("username", "Guest")
+        binding.welcomeTextView.text = "Welcome, $username!"
+
+        if (username == "Guest") {
+            binding.authButton.apply {
+                text = "Login"
+                backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this@FetchActivity, R.color.blue_700))
+                setOnClickListener {
+                    startActivity(Intent(this@FetchActivity, LoginActivity::class.java))
+                    finish()
+                }
+            }
+        } else {
+            binding.authButton.apply {
+                text = "Logout"
+                backgroundTintList = ColorStateList.valueOf(Color.RED)
+                setOnClickListener {
+                    showLogoutConfirmationDialog()
+                }
+            }
+        }
+    }
+
+    private fun showLogoutConfirmationDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Logout")
+            .setMessage("Are you sure you want to logout?")
+            .setPositiveButton("Yes") { _, _ ->
+                sharedPreferences.edit().clear().apply()
+                startActivity(Intent(this, LoginActivity::class.java))
+                finish()
+            }
+            .setNegativeButton("No", null)
+            .show()
     }
 }
