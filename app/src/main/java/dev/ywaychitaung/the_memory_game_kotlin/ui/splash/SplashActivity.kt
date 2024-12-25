@@ -27,7 +27,7 @@ class SplashActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
 
         val userId = sharedPreferences.getString("userId", null)
-        val intent = Intent(this, if (userId != null) FetchActivity::class.java else LoginActivity::class.java)
+        val intent = Intent(this, if (userId != null && sharedPreferences.getString("username", "Guest") != "Guest") FetchActivity::class.java else LoginActivity::class.java)
         startActivity(intent)
         finish()
     }

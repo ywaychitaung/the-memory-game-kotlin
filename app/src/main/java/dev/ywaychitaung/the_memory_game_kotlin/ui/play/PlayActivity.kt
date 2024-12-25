@@ -7,6 +7,7 @@ import android.os.Looper
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
@@ -69,12 +70,26 @@ class PlayActivity : AppCompatActivity() {
         binding.userStatusTextView.text = if (isPaidUser) "Premium User" else "Free User"
         binding.userStatusIcon.setImageResource(if (isPaidUser) R.drawable.ic_premium else R.drawable.ic_free)
         binding.adTextView.visibility = if (isPaidUser) View.GONE else View.VISIBLE
-        binding.purchasePremiumButton.visibility = if (isPaidUser) View.GONE else View.VISIBLE
-        binding.adTextView.text = adStrings[0]
 
-        binding.logoutButton.setOnClickListener {
-            showLogoutConfirmationDialog()
+        // Show Login button for guest users and Logout button for logged-in users
+        // Show Login button for guest users and Logout button for logged-in users
+        if (username == "Guest") {
+            binding.purchasePremiumButton.visibility = View.GONE
+            binding.logoutButton.text = "Login"
+            binding.logoutButton.setBackgroundColor(ContextCompat.getColor(this, R.color.blue_700))
+            binding.logoutButton.setTextColor(ContextCompat.getColor(this, R.color.white)) // Optional: Change text color to white for better contrast
+            binding.logoutButton.setOnClickListener {
+                navigateToLogin()
+            }
+        } else {
+            binding.logoutButton.text = "Logout"
+            binding.logoutButton.setBackgroundColor(ContextCompat.getColor(this, R.color.red)) // Optional: Set logout button color to red
+            binding.logoutButton.setTextColor(ContextCompat.getColor(this, R.color.white)) // Optional: Change text color to white for better contrast
+            binding.logoutButton.setOnClickListener {
+                showLogoutConfirmationDialog()
+            }
         }
+
 
         binding.purchasePremiumButton.setOnClickListener {
             handlePremiumPurchase()
@@ -250,6 +265,13 @@ class PlayActivity : AppCompatActivity() {
 
     private fun navigateToLeaderboard() {
         startActivity(Intent(this, LeaderboardActivity::class.java))
+        finish()
+    }
+
+    private fun navigateToLogin() {
+        val intent = Intent(this, LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
         finish()
     }
 

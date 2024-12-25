@@ -27,6 +27,7 @@ import dev.ywaychitaung.the_memory_game_kotlin.networking.WebService
 import dev.ywaychitaung.the_memory_game_kotlin.ui.login.LoginActivity
 import dev.ywaychitaung.the_memory_game_kotlin.ui.play.PlayActivity
 import kotlinx.coroutines.withContext
+import kotlin.coroutines.cancellation.CancellationException
 
 class FetchActivity : AppCompatActivity() {
     private lateinit var binding: ActivityFetchBinding
@@ -105,6 +106,9 @@ class FetchActivity : AppCompatActivity() {
     }
 
     private fun fetchImages(url: String) {
+        if (currentJob?.isActive == true) {
+            Toast.makeText(this, "Downloading images from new url", Toast.LENGTH_SHORT).show()
+        }
         currentJob?.cancel()
         currentJob = lifecycleScope.launch(Dispatchers.IO) {
             try {
@@ -126,9 +130,8 @@ class FetchActivity : AppCompatActivity() {
                     throw Exception("No images found at the specified URL.")
                 }
 
-                // Download images with artificial delay
                 imageUrls.forEachIndexed { index, imageUrl ->
-                    if (!isActive) return@forEachIndexed
+                    if (!isActive) return@forEachIndexed // Check for cancellation
 
                     withContext(Dispatchers.Main) {
                         (binding.imagesRecyclerView.adapter as FetchAdapter).addImage(imageUrl)
@@ -136,12 +139,12 @@ class FetchActivity : AppCompatActivity() {
                     }
 
                     // Add artificial delay between image downloads
-                    withContext(Dispatchers.IO) {
-                        kotlinx.coroutines.delay(500) // 500ms delay between each image
-                    }
+                    kotlinx.coroutines.delay(500) // 500ms delay
                 }
 
                 finishLoading()
+            } catch (e: CancellationException) {
+                // Suppress cancellation exceptions explicitly
             } catch (e: Exception) {
                 e.printStackTrace()
                 showError(e.message ?: "Error occurred while fetching images.")

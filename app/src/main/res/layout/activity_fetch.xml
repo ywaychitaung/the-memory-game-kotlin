@@ -27,7 +27,8 @@
         android:layout_height="match_parent"
         android:fillViewport="true"
         android:layout_marginTop="?attr/actionBarSize"
-        android:padding="16dp">
+        android:paddingVertical="16dp"
+        android:paddingHorizontal="48dp">
 
         <LinearLayout
             android:layout_width="match_parent"
